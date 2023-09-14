@@ -68,7 +68,7 @@ public class Main {
                 String[] variableName = ir.getLocalNames(position, position);
 
                 if (variableName.length != 0) {
-                    System.out.println(ir.getLocalNames(position, position)[0]);
+                    System.out.println(variableName[0]);
                 }
             }
         }
