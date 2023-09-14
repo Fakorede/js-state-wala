@@ -6,8 +6,6 @@ import com.ibm.wala.cast.js.translator.CAstRhinoTranslatorFactory;
 import com.ibm.wala.cast.types.AstMethodReference;
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
-import com.ibm.wala.examples.drivers.ConstructAllIRs;
-import com.ibm.wala.examples.drivers.JSCallGraphDriver;
 import com.ibm.wala.ipa.callgraph.impl.Everywhere;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.IClassHierarchy;
@@ -16,12 +14,8 @@ import com.ibm.wala.ssa.IRFactory;
 import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAOptions;
 
-import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Iterator;
 
 public class Main {
     public static void main(String[] args) {
@@ -55,22 +49,26 @@ public class Main {
                     IR ir = factory.makeIR(m, Everywhere.EVERYWHERE,
                             new SSAOptions());
 
-                    for (SSAInstruction instruction : ir.getInstructions()) {
-                        if (instruction == null) {
-                            continue;
-                        }
+                    printVariables(ir);
+                }
+            }
+        }
+    }
 
-                        String variableClass = "class com.ibm.wala.cast.ir.ssa.AstGlobalRead";
+    public static void printVariables(IR ir) {
+        for (SSAInstruction instruction : ir.getInstructions()) {
+            if (instruction == null) {
+                continue;
+            }
 
-                        if (instruction.getClass().toString().equals(variableClass)) {
-                            var position = instruction.getDef();
-                            var variableName = ir.getLocalNames(position, position);
+            String variableClass = "class com.ibm.wala.cast.ir.ssa.AstGlobalRead";
 
-                            if (variableName.length != 0) {
-                                System.out.println(ir.getLocalNames(position, position)[0]);
-                            }
-                        }
-                    }
+            if (instruction.getClass().toString().equals(variableClass)) {
+                int position = instruction.getDef();
+                String[] variableName = ir.getLocalNames(position, position);
+
+                if (variableName.length != 0) {
+                    System.out.println(ir.getLocalNames(position, position)[0]);
                 }
             }
         }
