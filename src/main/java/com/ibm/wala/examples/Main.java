@@ -13,27 +13,23 @@ import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.IClassHierarchy;
 import com.ibm.wala.ssa.IR;
 import com.ibm.wala.ssa.IRFactory;
+import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAOptions;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Iterator;
 
 public class Main {
     public static void main(String[] args) {
         try {
-            System.out.println(Arrays.toString(args));
-
-            System.out.println("Print Call Graph...");
-            JSCallGraphDriver.main(args);
-
             Path path = Paths.get(args[0]);
             String fileName = path.getParent().toString() + "/" + path.getFileName().toString();
 
-            System.out.println("Print IRs...");
-            System.out.println();
-
+            System.out.println("Analyzing js code for variables...");
             printIRs(fileName);
         } catch (Exception e) {
             System.out.println("Something went wrong");
@@ -58,7 +54,23 @@ public class Main {
                 if (m != null) {
                     IR ir = factory.makeIR(m, Everywhere.EVERYWHERE,
                             new SSAOptions());
-                    System.out.println(ir);
+
+                    for (SSAInstruction instruction : ir.getInstructions()) {
+                        if (instruction == null) {
+                            continue;
+                        }
+
+                        String variableClass = "class com.ibm.wala.cast.ir.ssa.AstGlobalRead";
+
+                        if (instruction.getClass().toString().equals(variableClass)) {
+                            var position = instruction.getDef();
+                            var variableName = ir.getLocalNames(position, position);
+
+                            if (variableName.length != 0) {
+                                System.out.println(ir.getLocalNames(position, position)[0]);
+                            }
+                        }
+                    }
                 }
             }
         }
