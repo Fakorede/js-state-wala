@@ -1,6 +1,5 @@
-package com.ibm.wala.examples;
-
 import com.ibm.wala.cast.ir.ssa.AstIRFactory;
+import com.ibm.wala.cast.ir.ssa.AstLexicalWrite;
 import com.ibm.wala.cast.js.ipa.callgraph.JSCallGraphUtil;
 import com.ibm.wala.cast.js.translator.CAstRhinoTranslatorFactory;
 import com.ibm.wala.cast.types.AstMethodReference;
@@ -16,6 +15,8 @@ import com.ibm.wala.ssa.SSAOptions;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Main {
     public static void main(String[] args) {
@@ -23,12 +24,11 @@ public class Main {
             Path path = Paths.get(args[0]);
             String fileName = path.getParent().toString() + "/" + path.getFileName().toString();
 
-            System.out.println("Analyzing js code for variables...");
             printIRs(fileName);
         } catch (Exception e) {
             System.out.println("Something went wrong");
             System.out.println(e.getMessage());
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
     public static void printIRs(String filename) throws ClassHierarchyException {
@@ -38,6 +38,7 @@ public class Main {
         // build a class hierarchy, for access to code info
         IClassHierarchy cha =
                 JSCallGraphUtil.makeHierarchyForScripts(filename);
+
         // for constructing IRs
         IRFactory<IMethod> factory = AstIRFactory.makeDefaultFactory();
         for (IClass klass : cha) {
@@ -45,32 +46,39 @@ public class Main {
             if (!klass.getName().toString().startsWith("prologue.js")) {
                 // get the IMethod representing the code (the ‘do’ method)
                 IMethod m = klass.getMethod(AstMethodReference.fnSelector);
-                if (m != null) {
+                if (m != null && !m.getSignature().equals("index.js.do()LRoot;")) {
                     IR ir = factory.makeIR(m, Everywhere.EVERYWHERE,
                             new SSAOptions());
 
-                    printVariables(ir);
+                    System.out.println("\nAccess paths for method: " + m);
+                    System.out.println(getModifiedInstanceVariables(ir));
                 }
             }
         }
     }
 
-    public static void printVariables(IR ir) {
-        for (SSAInstruction instruction : ir.getInstructions()) {
-            if (instruction == null) {
-                continue;
-            }
+    /**
+     * Checks for lexical writes in
+     * @param ir
+     * @return Set<String>
+     */
+    public static Set<String> getModifiedInstanceVariables(IR ir) {
+        Set<String> mod = new HashSet<>();
 
-            String variableClass = "class com.ibm.wala.cast.ir.ssa.AstGlobalRead";
+        for (int i = 0; i < ir.getInstructions().length; i++) {
+            SSAInstruction inst = ir.getInstructions()[i];
 
-            if (instruction.getClass().toString().equals(variableClass)) {
-                int position = instruction.getDef();
-                String[] variableName = ir.getLocalNames(position, position);
+            if (inst != null) {
+                for (int v = 0; v < inst.getNumberOfUses(); v++) {
+                    String[] names = ir.getLocalNames(i, inst.getUse(v));
 
-                if (variableName.length != 0) {
-                    System.out.println(variableName[0]);
+                    if (names != null && names.length != 0 && inst.getClass().equals(AstLexicalWrite.class)) {
+                        mod.add(names[0]);
+                    }
                 }
             }
         }
+
+        return mod;
     }
 }

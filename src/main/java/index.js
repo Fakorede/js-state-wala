@@ -4,10 +4,12 @@ var isAdult = null;
 var age = null;
 
 function calculateAge(year) {
-    return 2023 - year;
+    age = 2023 - year;
+    isAdult = true;
 }
 
-age = calculateAge(1997);
+calculateAge(1997);
+
 isAdult = age > 18 ? true : false;
 
 var message = "The candidate " + name + " is " + age + " years old and is";
