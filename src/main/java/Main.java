@@ -68,11 +68,11 @@ public class Main {
         for (int i = 0; i < ir.getInstructions().length; i++) {
             SSAInstruction inst = ir.getInstructions()[i];
 
-            if (inst != null) {
+            if (inst != null && inst.getClass().equals(AstLexicalWrite.class)) {
                 for (int v = 0; v < inst.getNumberOfUses(); v++) {
                     String[] names = ir.getLocalNames(i, inst.getUse(v));
 
-                    if (names != null && names.length != 0 && inst.getClass().equals(AstLexicalWrite.class)) {
+                    if (names != null && names.length != 0) {
                         mod.add(names[0]);
                     }
                 }
