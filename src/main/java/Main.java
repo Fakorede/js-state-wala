@@ -15,6 +15,7 @@ import com.ibm.wala.ssa.SSAOptions;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,14 +25,14 @@ public class Main {
             Path path = Paths.get(args[0]);
             String fileName = path.getParent().toString() + "/" + path.getFileName().toString();
 
-            printIRs(fileName);
+            generateIR(fileName);
         } catch (Exception e) {
             System.out.println("Something went wrong");
             System.out.println(e.getMessage());
             // e.printStackTrace();
         }
     }
-    public static void printIRs(String filename) throws ClassHierarchyException {
+    public static void generateIR(String filename) throws ClassHierarchyException {
         // use Rhino to parse JavaScript
         JSCallGraphUtil.setTranslatorFactory(
                 new CAstRhinoTranslatorFactory());
@@ -50,15 +51,43 @@ public class Main {
                     IR ir = factory.makeIR(m, Everywhere.EVERYWHERE,
                             new SSAOptions());
 
-                    System.out.println("\nAccess paths for method: " + m);
+                    System.out.println("\nAccess paths for method " + m + " using the may-modify analysis");
                     System.out.println(getModifiedInstanceVariables(ir));
+
+                    System.out.println("\nAccess paths for method " + m + " using the may-use analysis");
+                    System.out.println(getUsedInstanceVariables(ir));
                 }
             }
         }
     }
 
     /**
-     * Checks for lexical writes in
+     * Performs the may-use analysis on the IR
+     * @param ir
+     * @return Set<String>
+     */
+    public static Set<String> getUsedInstanceVariables(IR ir) {
+        Set<String> use = new HashSet<>();
+
+        for (int i = ir.getInstructions().length - 1; i >= 0; i--) {
+            SSAInstruction inst = ir.getInstructions()[i];
+
+            if (inst != null) {
+                for (int v = 0; v < inst.getNumberOfUses(); v++) {
+                    String[] names = ir.getLocalNames(i, inst.getUse(v));
+
+                    if (names != null && names.length != 0) {
+                        use.add(names[0]);
+                    }
+                }
+            }
+        }
+
+        return use;
+    }
+
+    /**
+     * Performs the may-modify analysis on the IR
      * @param ir
      * @return Set<String>
      */
