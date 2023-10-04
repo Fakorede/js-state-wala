@@ -47,15 +47,22 @@ public class Main {
             if (!klass.getName().toString().startsWith("prologue.js")) {
                 // get the IMethod representing the code (the ‘do’ method)
                 IMethod m = klass.getMethod(AstMethodReference.fnSelector);
-                if (m != null && !m.getSignature().equals("index.js.do()LRoot;")) {
+                if (m != null) {
                     IR ir = factory.makeIR(m, Everywhere.EVERYWHERE,
                             new SSAOptions());
 
-                    System.out.println("\nAccess paths for method " + m + " using the may-modify analysis");
-                    System.out.println(getModifiedInstanceVariables(ir));
-
-                    System.out.println("\nAccess paths for method " + m + " using the may-use analysis");
-                    System.out.println(getUsedInstanceVariables(ir));
+                    switch (m.getSignature()) {
+                        // perform the static analysis only on the callbacks
+                        case "liveness.js.calculateAge.do()LRoot;":
+                        case "liveness.js.anotherFunction.do()LRoot;":
+                            System.out.println("\nThe set of live variables for method " + m + " using the liveness analysis");
+                            System.out.println(getLiveInstanceVariables(ir));
+                            break;
+                        case "modify.js.do()LRoot;":
+                            System.out.println("\nAccess paths for method " + m + " using the may-modify analysis");
+                            System.out.println(getModifiedInstanceVariables(ir));
+                            break;
+                    }
                 }
             }
         }
@@ -66,13 +73,13 @@ public class Main {
      * @param ir
      * @return Set<String>
      */
-    public static Set<String> getUsedInstanceVariables(IR ir) {
+    public static Set<String> getLiveInstanceVariables(IR ir) {
         Set<String> use = new HashSet<>();
 
         for (int i = ir.getInstructions().length - 1; i >= 0; i--) {
             SSAInstruction inst = ir.getInstructions()[i];
 
-            if (inst != null) {
+            if (inst != null && !inst.getClass().equals(AstLexicalWrite.class)) {
                 for (int v = 0; v < inst.getNumberOfUses(); v++) {
                     String[] names = ir.getLocalNames(i, inst.getUse(v));
 
